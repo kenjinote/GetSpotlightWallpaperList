@@ -1,16 +1,12 @@
 ﻿#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-#pragma comment(lib, "wininet")
-#pragma comment(lib, "Shlwapi")
 #pragma comment(lib, "gdiplus")
 #pragma comment (lib, "shlwapi")
 
 #include <windows.h>
-#include <wininet.h>
 #include <shlwapi.h>
 #include <gdiplus.h>
 #include <shlobj.h>
-#include <shlwapi.h>
 
 using namespace Gdiplus;
 
