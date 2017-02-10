@@ -287,6 +287,7 @@ LRESULT CALLBACK ListProc1(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			{
 				return 0;
 			}
+
 			const int xPos = lParam & 0xFFFF;
 			const int yPos = (lParam >> 16) & 0xFFFF;
 
@@ -296,39 +297,42 @@ LRESULT CALLBACK ListProc1(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			const int nOldIndex = (int)SendMessage(hWnd, LB_GETCURSEL, 0, 0);
 			const int nIndex = yIndex * m_nMaxRowCount + xIndex;
 
-			if (nOldIndex != nIndex)
+			if (nIndex >= 0 && nIndex < nItemCount)
 			{
-				SendMessage(hWnd, LB_SETCURSEL, nIndex, 0);
-				if (nOldIndex != LB_ERR)
+				if (nOldIndex != nIndex)
 				{
-					SendMessage(hWnd, WM_INVALIDATEITEM, nOldIndex, 0);
+					SendMessage(hWnd, LB_SETCURSEL, nIndex, 0);
+					if (nOldIndex != LB_ERR)
+					{
+						SendMessage(hWnd, WM_INVALIDATEITEM, nOldIndex, 0);
+					}
+					if (nIndex != LB_ERR)
+					{
+						SendMessage(hWnd, WM_INVALIDATEITEM, nIndex, 0);
+						SendMessage(hWnd, WM_ENSUREVISIBLE, nIndex, 0);
+					}
 				}
-				if (nIndex != LB_ERR)
+
+				LIST_ITEM*itemdata = (LIST_ITEM*)SendMessage(hWnd, LB_GETITEMDATA, nIndex, 0);
+				if (itemdata)
 				{
-					SendMessage(hWnd, WM_INVALIDATEITEM, nIndex, 0);
-					SendMessage(hWnd, WM_ENSUREVISIBLE, nIndex, 0);
+					PIDLIST_ABSOLUTE*ppidlAbsolute = (PIDLIST_ABSOLUTE *)CoTaskMemAlloc(sizeof(PIDLIST_ABSOLUTE));
+					PITEMID_CHILD*ppidlChild = (PITEMID_CHILD *)CoTaskMemAlloc(sizeof(PITEMID_CHILD));
+					ppidlAbsolute[0] = ILCreateFromPath(itemdata->szImageFilePath);
+					IShellFolder*pShellFolder = NULL;
+					SHBindToParent(ppidlAbsolute[0], IID_PPV_ARGS(&pShellFolder), NULL);
+					ppidlChild[0] = ILFindLastID(ppidlAbsolute[0]);
+					IDataObject*pDataObject;
+					pShellFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST *)ppidlChild, IID_IDataObject, NULL, (void **)&pDataObject);
+
+					POINT point = { (LONG)(DRAG_IMAGE_WIDTH / 2), (LONG)(DRAG_IMAGE_HEIGHT / 2) };
+					SetDragImage(hWnd, pDragSourceHelper, pDataObject, itemdata->image, &point);
+					DWORD dwEffect;
+					DoDragDrop(pDataObject, pDropSource, DROPEFFECT_COPY, &dwEffect);
+					CoTaskMemFree(ppidlAbsolute[0]);
+					CoTaskMemFree(ppidlAbsolute);
+					CoTaskMemFree(ppidlChild);
 				}
-			}
-
-			LIST_ITEM*itemdata = (LIST_ITEM*)SendMessage(hWnd, LB_GETITEMDATA, nIndex, 0);
-			if (itemdata)
-			{
-				PIDLIST_ABSOLUTE*ppidlAbsolute = (PIDLIST_ABSOLUTE *)CoTaskMemAlloc(sizeof(PIDLIST_ABSOLUTE));
-				PITEMID_CHILD*ppidlChild = (PITEMID_CHILD *)CoTaskMemAlloc(sizeof(PITEMID_CHILD));
-				ppidlAbsolute[0] = ILCreateFromPath(itemdata->szImageFilePath);
-				IShellFolder*pShellFolder = NULL;
-				SHBindToParent(ppidlAbsolute[0], IID_PPV_ARGS(&pShellFolder), NULL);
-				ppidlChild[0] = ILFindLastID(ppidlAbsolute[0]);
-				IDataObject*pDataObject;
-				pShellFolder->GetUIObjectOf(NULL, 1, (LPCITEMIDLIST *)ppidlChild, IID_IDataObject, NULL, (void **)&pDataObject);
-
-				POINT point = { (LONG)(DRAG_IMAGE_WIDTH / 2), (LONG)(DRAG_IMAGE_HEIGHT / 2) };
-				SetDragImage(hWnd, pDragSourceHelper, pDataObject, itemdata->image, &point);
-				DWORD dwEffect;
-				DoDragDrop(pDataObject, pDropSource, DROPEFFECT_COPY, &dwEffect);
-				CoTaskMemFree(ppidlAbsolute[0]);
-				CoTaskMemFree(ppidlAbsolute);
-				CoTaskMemFree(ppidlChild);
 			}
 		}
 		break;
